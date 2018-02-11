@@ -1,6 +1,6 @@
 # App Development
 
-This is for CS 595 [Capstone] at the University of Wisconsin-Milwaukee. The goal of this program is a smart scheduling application written in React Native that can be used to help users schedule tasks
+This is for CS-595 [Capstone] at the University of Wisconsin-Milwaukee. The goal of this program is a smart scheduling application written in React Native that can be used to help users schedule tasks
 
 ## Getting Started
 
