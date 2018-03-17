@@ -1,3 +1,3 @@
 # Reports
 
-This is where our group project will be placed into.
+This is where our biweekly reports will be placed into after being placed into the Dropbox (D2L).
