@@ -20,8 +20,8 @@ LocaleConfig.defaultLocale = 'fr';
 
 Navigation.startSingleScreenApp({
   screen: {
-    screen: 'Menu',
-    title: 'WixCal',
+    screen: 'Agenda',
+    title: 'PlanIT',
   },
   appStyle: {
     navBarBackgroundColor: '#00adf5',
