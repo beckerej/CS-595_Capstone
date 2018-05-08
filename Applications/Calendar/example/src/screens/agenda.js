@@ -10,9 +10,49 @@ export default class AgendaScreen extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      items: {}
+      items: {},
+      dates: []
     };
+    this.getMoviesFromApiAsync = this.getMoviesFromApiAsync.bind(this);
   }
+
+  async getMoviesFromApiAsync() {
+    return fetch('http://192.168.1.110:3000/')
+      .then((response) => response.json())
+      .then((responseJson) => {
+        return responseJson.events;
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
+  async componentDidMount() {
+    let data = await this.getMoviesFromApiAsync();
+    let dates = []
+    data.map((calendars) => {
+      calendars.map((events) => {
+        if(events.start.dateTime && events.start.dateTime){
+          const startDatetime = new Date(events.start.dateTime);
+          const endDatetime = new Date(events.end.dateTime);
+          //console.log(date.toISOString().split('T')[0])//.split('Z')[0]);
+          dates.push({
+            startDate: startDatetime.toISOString().split('T')[0],
+            endDate: endDatetime.toISOString().split('T')[0],
+            startTime: startDatetime.toISOString().split('T')[1].split('Z')[0],
+            endTime: endDatetime.toISOString().split('T')[1].split('Z')[0],
+            title: events.summary
+          });
+        }
+      })
+    })
+    this.setState({
+      dates: dates
+    })
+    console.log(this.state.dates)
+  }
+
+
 
   render() {
     return (
@@ -49,17 +89,19 @@ export default class AgendaScreen extends Component {
     setTimeout(() => {
       for (let i = -15; i < 85; i++) {
         const time = day.timestamp + i * 24 * 60 * 60 * 1000;
-        console.log(time);
-        const strTime = this.timeToString(time);
-        console.log(strTime);
+        const strTime = this.dateToString(time);
         if (!this.state.items[strTime]) {
           this.state.items[strTime] = [];
-          const numItems = Math.floor(Math.random() * 5);
-          for (let j = 0; j < numItems; j++) {
-            this.state.items[strTime].push({
-              name: 'Item for ' + strTime,
-              height: 100
-            });
+          //const numItems = Math.floor(Math.random() * 5);
+          for (let j = 0; j < this.state.dates.length; j++) {
+            if(this.state.dates[j].startDate == strTime){ //TODO: needs to be changed later
+              this.state.items[strTime].push({
+                name: this.state.dates[j].title,
+                startTime: this.state.dates[j].startTime,
+                endTime: this.state.dates[j].endTime,
+                height: 100
+              });
+            }
           }
         }
       }
@@ -69,13 +111,17 @@ export default class AgendaScreen extends Component {
       this.setState({
         items: newItems
       });
-    }, 1000);
+    }, 3000);
     // console.log(`Load Items for ${day.year}-${day.month}`);
   }
 
   renderItem(item) {
     return (
-      <View style={[styles.item, {height: item.height}]}><Text>{item.name}</Text></View>
+      <View style={[styles.item, {height: item.height}]}>
+        <Text style={styles.title}>{item.name}</Text>
+        <Text style={styles.time}>{item.startTime} - {item.endTime}</Text>
+        <Text style={styles.location}>{item.name}</Text>
+      </View>
     );
   }
 
@@ -93,6 +139,11 @@ export default class AgendaScreen extends Component {
 
   timeToString(time) {
     const date = new Date(time);
+    return date.toISOString().split('T')[1];
+  }
+
+  dateToString(time) {
+    const date = new Date(time);
     return date.toISOString().split('T')[0];
   }
 }
@@ -105,6 +156,16 @@ const styles = StyleSheet.create({
     padding: 10,
     marginRight: 10,
     marginTop: 17
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  time: {
+    color: '#00adf5'
+  },
+  location: {
+
   },
   emptyDate: {
     height: 15,
