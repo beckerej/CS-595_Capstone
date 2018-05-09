@@ -8,6 +8,9 @@ const OAuth2Client = google.auth.OAuth2;
 const SCOPES = ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.readonly'];
 const TOKEN_PATH = 'credentials.json';
 
+app.use(express.json());       // to support JSON-encoded bodies
+app.use(express.urlencoded()); // to support URL-encoded bodies
+
 app.get('/', (req, res) => {
     var CAL = {
         events: [],
@@ -81,9 +84,11 @@ app.get('/', (req, res) => {
   function listEvents(auth, calId) {
     const calendar = google.calendar({version: 'v3', auth});
     calId = "hrsqsn09fjsd6g7n5crsgdq7oc@group.calendar.google.com"
+    d = new Date();
+    d.setDate(d.getDate()-5);
     calendar.events.list({
       calendarId: calId,
-      timeMin: (new Date()).toISOString(),
+      timeMin: d.toISOString(),
       maxResults: 20,
       singleEvents: true,
       orderBy: 'startTime',
@@ -128,20 +133,33 @@ app.get('/', (req, res) => {
   
 })
 
-app.get('/add', (req, res) => {
+app.post('/add', (req, res) => {
   var CAL = {
-      data: []
+      data: [],
+      "success": true
   }
+
   
   // Load client secrets from a local file.
   fs.readFile('client_secret.json', (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
-  // Authorize a client with credentials, then call the Google Drive API.
-  //authorize(JSON.parse(content), listEvents);
-  authorize(JSON.parse(content), addEvents);
-  setTimeout(function() {
-      res.json(CAL)
-    }, 2000);
+    // Authorize a client with credentials, then call the Google Drive API.
+    //authorize(JSON.parse(content), listEvents);
+   
+    if(req.body.taskName !== null 
+    && req.body.taskLength !== null 
+    && req.body.taskName !==null){
+      authorize(JSON.parse(content), addEvents);
+      setTimeout(function() {
+          res.json(CAL)
+        }, 2000);
+    }
+
+    console.log("test -> " + req.body.taskTime)
+    console.log("test -> " + req.body.taskLength)
+    console.log("test -> " + req.body.taskName)
+
+    //res.json(CAL)
   });
 
   /**
@@ -158,7 +176,7 @@ app.get('/add', (req, res) => {
     fs.readFile(TOKEN_PATH, (err, token) => {
       if (err) return getAccessToken(oAuth2Client, callback);
       oAuth2Client.setCredentials(JSON.parse(token));
-      callback(oAuth2Client);
+      callback(oAuth2Client, req.body.taskTime, req.body.taskLength, req.body.taskName);
     });
   }
 
@@ -197,20 +215,21 @@ app.get('/add', (req, res) => {
    * Lists the next 10 events on the user's primary calendar.
    * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
    */
-  function addEvents(auth) {
+  function addEvents(auth, taskTime, taskLength, taskName) {
     const calendar = google.calendar({version: 'v3', auth});
     calendar.events.insert({
       "calendarId": "hrsqsn09fjsd6g7n5crsgdq7oc@group.calendar.google.com",
       'resource':{
         "end":{
-          "dateTime":"2018-05-09T20:30:00-05:00",
+          "dateTime": taskTime,
           //"timeZone":"America/Chicago"
         },
         "start":{
-          "dateTime":"2018-05-09T18:30:00-05:00",
+          "dateTime": taskTime,
           //"timeZone":"America/Chicago"
         },
-        "summary": "TEST TITLE3"
+        "summary": taskName,
+        "description": taskLength
       }
     }, (err, {data}) => {
       if (err) return console.log('The API returned an error: ' + err);

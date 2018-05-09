@@ -3,11 +3,14 @@ import {
   Modal,
   Text,
   View,
-  StyleSheet
+  StyleSheet,
+  TextInput,
+  Button
 } from 'react-native';
 import {Agenda} from 'react-native-calendars';
 import ActionButton from 'react-native-action-button';
 import Icon from 'react-native-vector-icons/Ionicons';
+import DateTimePicker from 'react-native-modal-datetime-picker';
 
 export default class AgendaScreen extends Component {
   constructor(props) {
@@ -16,10 +19,16 @@ export default class AgendaScreen extends Component {
       items: {},
       dates: [],
       modalVisible: false,
+      isDateTimePickerVisible: false,
+      taskTime: null,
+      taskLength: null,
+      taskName: null
     };
     this.getMoviesFromApiAsync = this.getMoviesFromApiAsync.bind(this);
+    this.addTask = this.addTask.bind(this);
   }
 
+  // TODO: RENAME FUNC
   async getMoviesFromApiAsync() {
     return fetch('http://192.168.1.110:3000/')
       .then((response) => response.json())
@@ -61,8 +70,94 @@ export default class AgendaScreen extends Component {
     console.log(this.state.dates)
   }
 
+  /**
+   * HELPER FUNCTIONS
+   */
+  _showDateTimePicker = () => this.setState({ isDateTimePickerVisible: true });
+
+  _hideDateTimePicker = () => this.setState({ isDateTimePickerVisible: false });
+
+  _handleDatePicked = (date) => {
+    this.setState({ taskTime: date })
+    this._hideDateTimePicker();
+  };
+
   setModalVisible(visible) {
     this.setState({modalVisible: visible});
+  }
+
+  displayTaskTime() {
+    if(this.state.taskTime!==null){
+      return this.format_dateTime(this.state.taskTime);
+    }
+  }
+
+  addTask() {
+    console.log("TEST")
+
+    let errMsg = null
+
+    if(this.state.taskLength===null)
+      errMsg = "A Task Length must be set!"
+
+    if(this.state.taskTime===null)
+      errMsg = "A Due Date must be chosen!"
+
+    if(this.state.taskName===null)
+      errMsg = "A Task Name must be chosen!"
+
+    // success
+    if(errMsg === null){
+      return fetch('http://192.168.1.110:3000/add', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskTime: this.state.taskTime,
+          taskLength: this.state.taskLength,
+          taskName: this.state.taskName
+        }),
+      }).then(() => {
+        this.setModalVisible(false);
+        alert("Task successfully added to the server and Google Calendar")
+        this.setState({
+          taskTime: null,
+          taskLength: null,
+          taskName: null
+        })
+        
+      })
+
+
+    }
+
+    // error
+    else{
+      alert(errMsg)
+    }
+
+    // TODO: Make it reset after adding logic, instead of everytime opening
+    // this.setState({ 
+    //   taskLength: null,
+    //   taskTime: null
+    // })
+  }
+
+  onChanged(text){
+    let newText = '';
+    let characters = '0123456789.';
+
+    for (var i=0; i < text.length; i++) {
+        if(characters.indexOf(text[i]) > -1 ) {
+            newText = newText + text[i];
+        }
+        else {
+            alert("Please enter numbers only");
+        }
+    }
+    this.setState({ taskLength: newText });
   }
 
   render() {
@@ -75,7 +170,48 @@ export default class AgendaScreen extends Component {
           onRequestClose={() => {
             this.setState({modalVisible: false});
           }}>
-          <Text>TEST TEXT</Text>
+        
+          <View style={{ flex: 1 }}>
+            <View style={styles.MainContainer}>
+              <Text style= {{ fontSize: 48, color: "#000", textAlign: 'center', marginBottom: 45 }}>Add a Task</Text>
+
+              <TextInput
+                // Adding hint in Text Input using Place holder.
+                placeholder="Enter Task Name"
+                onChangeText={taskName => this.setState({taskName})}
+                // Making the Under line Transparent.
+                underlineColorAndroid='transparent'
+                style={styles.TextInputStyleClass}
+              />
+
+              <View style= {{marginTop: 10, marginBottom: 10}}>
+                <Button title="Set Due Date" onPress={this._showDateTimePicker} color="#2196F3" />
+              </View>
+              <Text style= {{ fontSize: 16, color: "#000", textAlign: 'center', marginBottom: 20 }}>{this.displayTaskTime()}</Text>
+
+              <TextInput
+                placeholder="Task Length in Hours"
+                style={styles.textInput}
+                keyboardType='numeric'
+                onChangeText={(text)=> this.onChanged(text)}
+                value={this.state.myNumber}
+                maxLength={6}  //setting limit of input
+                style={styles.TextInputStyleClass}
+              />
+              <View style= {{marginTop: 40}}>
+                <Button title="Add Task" onPress={this.addTask} color="#2196F3" />
+              </View>
+            </View>
+
+            <DateTimePicker
+              mode="datetime"
+              is24Hour={false}
+              isVisible={this.state.isDateTimePickerVisible}
+              onConfirm={this._handleDatePicked}
+              onCancel={this._hideDateTimePicker}
+            />
+         </View> 
+
         </Modal>
         <Agenda
           items={this.state.items}
@@ -180,6 +316,23 @@ export default class AgendaScreen extends Component {
     return hour + ":" + minute + amPM;
   }
 
+  format_dateTime(date_obj) {
+    // TODO: Change to text date & show day of week
+    // formats a javascript Date object into a 12h AM/PM time string
+    var hour = date_obj.getHours();
+    var minute = date_obj.getMinutes();
+    var amPM = (hour > 11) ? "PM" : "AM";
+    if(hour > 12) {
+      hour -= 12;
+    } else if(hour == 0) {
+      hour = "12";
+    }
+    if(minute < 10) {
+      minute = "0" + minute;
+    }
+    return date_obj.getMonth() + "/" + date_obj.getDate() + "/" + date_obj.getFullYear() + " at " + hour + ":" + minute + " " + amPM;
+  }
+
   timeToString(time) {
     const date = new Date(time);
     return date.toUTCString().split('T')[1];
@@ -220,4 +373,25 @@ const styles = StyleSheet.create({
     height: 22,
     color: 'white',
   },
+  MainContainer :{
+
+    justifyContent: 'center',
+    flex:1,
+    margin: 10
+  },
+     
+  TextInputStyleClass: {
+    textAlign: 'center',
+    marginBottom: 15,
+    height: 40,
+    borderWidth: 1,
+    // Set border Hex Color Code Here.
+     borderColor: '#2196F3',
+     
+     // Set border Radius.
+     borderRadius: 5 ,
+     
+    // Set border Radius.
+     //borderRadius: 10 ,
+  }
 });
