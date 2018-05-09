@@ -1,17 +1,21 @@
 import React, { Component } from 'react';
 import {
+  Modal,
   Text,
   View,
   StyleSheet
 } from 'react-native';
 import {Agenda} from 'react-native-calendars';
+import ActionButton from 'react-native-action-button';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 export default class AgendaScreen extends Component {
   constructor(props) {
     super(props);
     this.state = {
       items: {},
-      dates: []
+      dates: [],
+      modalVisible: false,
     };
     this.getMoviesFromApiAsync = this.getMoviesFromApiAsync.bind(this);
   }
@@ -33,14 +37,19 @@ export default class AgendaScreen extends Component {
     data.map((calendars) => {
       calendars.map((events) => {
         if(events.start.dateTime && events.start.dateTime){
+          console.log(events.start.dateTime)
+          console.log(events.end.dateTime)
           const startDatetime = new Date(events.start.dateTime);
           const endDatetime = new Date(events.end.dateTime);
+
           //console.log(date.toISOString().split('T')[0])//.split('Z')[0]);
+
+          // TODO: add an order fcn
           dates.push({
             startDate: startDatetime.toISOString().split('T')[0],
             endDate: endDatetime.toISOString().split('T')[0],
-            startTime: startDatetime.toISOString().split('T')[1].split('Z')[0],
-            endTime: endDatetime.toISOString().split('T')[1].split('Z')[0],
+            startTime: this.format_time(startDatetime),//.split('T')[1].split(':00.000Z')[0],
+            endTime: this.format_time(endDatetime),//.split('T')[1].split(':00.000Z')[0],
             title: events.summary
           });
         }
@@ -52,36 +61,53 @@ export default class AgendaScreen extends Component {
     console.log(this.state.dates)
   }
 
-
+  setModalVisible(visible) {
+    this.setState({modalVisible: visible});
+  }
 
   render() {
     return (
-      <Agenda
-        items={this.state.items}
-        loadItemsForMonth={this.loadItems.bind(this)}
-        selected={new Date()}
-        renderItem={this.renderItem.bind(this)}
-        renderEmptyDate={this.renderEmptyDate.bind(this)}
-        rowHasChanged={this.rowHasChanged.bind(this)}
-        // markingType={'period'}
-        // markedDates={{
-        //    '2017-05-08': {textColor: '#666'},
-        //    '2017-05-09': {textColor: '#666'},
-        //    '2017-05-14': {startingDay: true, endingDay: true, color: 'blue'},
-        //    '2017-05-21': {startingDay: true, color: 'blue'},
-        //    '2017-05-22': {endingDay: true, color: 'gray'},
-        //    '2017-05-24': {startingDay: true, color: 'gray'},
-        //    '2017-05-25': {color: 'gray'},
-        //    '2017-05-26': {endingDay: true, color: 'gray'}}}
-         // monthFormat={'yyyy'}
-        //  theme={{
-        //   agendaDayTextColor: 'yellow',
-        //   agendaDayNumColor: 'green',
-        //   agendaTodayColor: 'red',
-        //   agendaKnobColor: 'blue'
-        // }}
-        //renderDay={(day, item) => (<Text>{day ? day.day: 'item'}</Text>)}
-      />
+      <View style={{flex:1, backgroundColor: '#f3f3f3'}}>
+        <Modal
+          animationType="fade"
+          transparent={false}
+          visible={this.state.modalVisible}
+          onRequestClose={() => {
+            this.setState({modalVisible: false});
+          }}>
+          <Text>TEST TEXT</Text>
+        </Modal>
+        <Agenda
+          items={this.state.items}
+          loadItemsForMonth={this.loadItems.bind(this)}
+          selected={new Date()}
+          renderItem={this.renderItem.bind(this)}
+          renderEmptyDate={this.renderEmptyDate.bind(this)}
+          rowHasChanged={this.rowHasChanged.bind(this)}
+          // markingType={'period'}
+          // markedDates={{
+          //    '2017-05-08': {textColor: '#666'},
+          //    '2017-05-09': {textColor: '#666'},
+          //    '2017-05-14': {startingDay: true, endingDay: true, color: 'blue'},
+          //    '2017-05-21': {startingDay: true, color: 'blue'},
+          //    '2017-05-22': {endingDay: true, color: 'gray'},
+          //    '2017-05-24': {startingDay: true, color: 'gray'},
+          //    '2017-05-25': {color: 'gray'},
+          //    '2017-05-26': {endingDay: true, color: 'gray'}}}
+          // monthFormat={'yyyy'}
+          //  theme={{
+          //   agendaDayTextColor: 'yellow',
+          //   agendaDayNumColor: 'green',
+          //   agendaTodayColor: 'red',
+          //   agendaKnobColor: 'blue'
+          // }}
+          //renderDay={(day, item) => (<Text>{day ? day.day: 'item'}</Text>)}
+        />
+        <ActionButton
+          buttonColor="rgba(231,76,60,1)"
+          onPress={() => { this.setModalVisible(!this.state.modalVisible) }}
+        />
+      </View>
     );
   }
 
@@ -105,6 +131,7 @@ export default class AgendaScreen extends Component {
           }
         }
       }
+
       //console.log(this.state.items);
       const newItems = {};
       Object.keys(this.state.items).forEach(key => {newItems[key] = this.state.items[key];});
@@ -137,9 +164,25 @@ export default class AgendaScreen extends Component {
     return r1.name !== r2.name;
   }
 
+  format_time(date_obj) {
+    // formats a javascript Date object into a 12h AM/PM time string
+    var hour = date_obj.getHours();
+    var minute = date_obj.getMinutes();
+    var amPM = (hour > 11) ? "pm" : "am";
+    if(hour > 12) {
+      hour -= 12;
+    } else if(hour == 0) {
+      hour = "12";
+    }
+    if(minute < 10) {
+      minute = "0" + minute;
+    }
+    return hour + ":" + minute + amPM;
+  }
+
   timeToString(time) {
     const date = new Date(time);
-    return date.toISOString().split('T')[1];
+    return date.toUTCString().split('T')[1];
   }
 
   dateToString(time) {
@@ -171,5 +214,10 @@ const styles = StyleSheet.create({
     height: 15,
     flex:1,
     paddingTop: 30
-  }
+  },
+  actionButtonIcon: {
+    fontSize: 20,
+    height: 22,
+    color: 'white',
+  },
 });
