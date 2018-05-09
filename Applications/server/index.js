@@ -136,6 +136,7 @@ app.get('/', (req, res) => {
 app.post('/add', (req, res) => {
   var CAL = {
       data: [],
+      events: [],
       "success": true
   }
 
@@ -150,9 +151,10 @@ app.post('/add', (req, res) => {
     && req.body.taskLength !== null 
     && req.body.taskName !==null){
       authorize(JSON.parse(content), addEvents);
+      authorize(JSON.parse(content), addEvents2);
       setTimeout(function() {
           res.json(CAL)
-        }, 2000);
+        }, 4000);
     }
 
     console.log("test -> " + req.body.taskTime)
@@ -215,6 +217,41 @@ app.post('/add', (req, res) => {
    * Lists the next 10 events on the user's primary calendar.
    * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
    */
+  function listEvents(auth, calId) {
+    const calendar = google.calendar({version: 'v3', auth});
+    calId = "hrsqsn09fjsd6g7n5crsgdq7oc@group.calendar.google.com"
+    d = new Date();
+    d.setDate(d.getDate()-5);
+    calendar.events.list({
+      calendarId: calId,
+      timeMin: d.toISOString(),
+      maxResults: 20,
+      singleEvents: true,
+      orderBy: 'startTime',
+    }, (err, {data}) => {
+      if (err) return console.log('The API returned an error: ' + err);
+      const events = data.items;
+      if (events.length) {
+          CAL.events = events;
+
+          days = []
+          // TODO: WORRY ABOUT MONTHS
+          CAL.events.array.forEach(event => {
+            let index = new Date(event.start.dateTime).getDay()
+            days[index] = "busy"
+          });
+
+          console.log(days.json())
+      } else {
+        console.log('No upcoming events found.');
+      }
+    });
+  }
+
+  /**
+   * Lists the next 10 events on the user's primary calendar.
+   * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+   */
   function addEvents(auth, taskTime, taskLength, taskName) {
     const calendar = google.calendar({version: 'v3', auth});
     calendar.events.insert({
@@ -233,12 +270,44 @@ app.post('/add', (req, res) => {
       }
     }, (err, {data}) => {
       if (err) return console.log('The API returned an error: ' + err);
-      CAL.data = data;
+      //listEvents(auth, taskTime)
       return data;
-
     });
+
+
+    
   }
 
+  function addEvents2(auth, taskTime, taskLength, taskName) {
+    const calendar = google.calendar({version: 'v3', auth});
+      d1 = new Date(taskTime)
+      d1.setDate(d1.getDate()-1)
+      dIso1 = d1.toISOString()
+      
+      d2 = new Date(d1.getTime()+(taskLength*60*60*1000))
+      dIso2 = d2.toISOString()
+
+      calendar.events.insert({
+        "calendarId": "hrsqsn09fjsd6g7n5crsgdq7oc@group.calendar.google.com",
+        'resource':{
+          "end":{
+            "dateTime": dIso2,
+            //"timeZone":"America/Chicago"
+          },
+          "start":{
+            "dateTime": dIso1,
+            //"timeZone":"America/Chicago"
+          },
+          "summary": "Work for task: " + taskName,
+          "description": taskLength
+        }
+      }, (err, {data}) => {
+        if (err) return console.log('The API returned an error: ' + err);
+        
+        
+        return data;
+      });
+    }
 });
 
 app.listen(3000, () => console.log('Example app listening on port 3000!'))
